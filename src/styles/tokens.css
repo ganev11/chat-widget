@@ -1,0 +1,95 @@
+/* Chat widget design tokens for Tailwind v4, shared by the widget build and by any Tailwind app
+   that renders the widget's renderers itself (import after "tailwindcss" and @source the widget's
+   src/). Every colour is a CSS variable (--cw-*) that the theme sets at runtime on the widget's
+   root (theme.js → themeStyle), so one compiled stylesheet serves every brand. */
+
+@theme inline {
+    --color-cw-primary: var(--cw-primary);
+    --color-cw-primary-hover: var(--cw-primary-hover);
+    --color-cw-on-primary: var(--cw-on-primary);
+    --color-cw-bg: var(--cw-bg);
+    --color-cw-surface: var(--cw-surface);
+    --color-cw-surface-alt: var(--cw-surface-alt);
+    --color-cw-surface-hover: var(--cw-surface-hover);
+    --color-cw-border: var(--cw-border);
+    --color-cw-text: var(--cw-text);
+    --color-cw-muted: var(--cw-text-muted);
+    --color-cw-subtle: var(--cw-text-subtle);
+    --color-cw-odds: var(--cw-odds);
+    --color-cw-highlight: var(--cw-highlight);
+    --color-cw-accent: var(--cw-accent);
+    --color-cw-success: var(--cw-success);
+    --color-cw-danger: var(--cw-danger);
+    --color-cw-warning: var(--cw-warning);
+    --color-cw-live: var(--cw-live);
+    --color-cw-user: var(--cw-user-bubble);
+    --color-cw-on-user: var(--cw-user-text);
+    --color-cw-header: var(--cw-header-bg);
+    --color-cw-on-header: var(--cw-header-text);
+    --color-cw-pitch: var(--cw-pitch);
+    --radius-cw: var(--cw-radius);
+}
+
+/* Betslip slot-machine reveal (renderers/Betslip.jsx): each leg spins as a blurred reel of decoy
+   picks and prices, then lands on the real pick with a bounce. */
+.reel-window {
+    mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent);
+}
+
+.reel-strip {
+    animation: reel-spin 0.4s linear infinite;
+    filter: blur(1.2px);
+}
+
+@keyframes reel-spin {
+    from { transform: translateY(-50%); }
+    to { transform: translateY(0); }
+}
+
+.reel-land {
+    animation: reel-land 450ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+@keyframes reel-land {
+    0% { transform: translateY(-90%); filter: blur(2px); opacity: 0.3; }
+    60% { transform: translateY(12%); filter: blur(0); opacity: 1; }
+    80% { transform: translateY(-4%); }
+    100% { transform: none; }
+}
+
+.reel-flash {
+    animation: reel-flash 800ms ease-out;
+}
+
+@keyframes reel-flash {
+    0% { background-color: color-mix(in srgb, var(--cw-highlight) 18%, transparent); }
+    100% { background-color: transparent; }
+}
+
+.reel-pop {
+    display: inline-block;
+    animation: reel-pop 380ms ease-out;
+}
+
+@keyframes reel-pop {
+    0% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+}
+
+/* Typing dots while the answer is on its way. */
+.cw-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    border-radius: 9999px;
+    background: currentColor;
+    animation: cw-dot 1.2s infinite ease-in-out both;
+}
+.cw-dots span:nth-child(2) { animation-delay: 0.15s; }
+.cw-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes cw-dot {
+    0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
+}

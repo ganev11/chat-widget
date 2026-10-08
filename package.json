@@ -1,0 +1,36 @@
+{
+  "name": "@sstrader/chat-widget",
+  "version": "0.1.0",
+  "description": "Embeddable AI betting-insights chat for sportsbooks: the reference client of the SSTrader chat API.",
+  "license": "ISC",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ganev11/chat-widget.git"
+  },
+  "main": "./dist/sst-chat.mjs",
+  "module": "./dist/sst-chat.mjs",
+  "exports": {
+    ".": "./dist/sst-chat.mjs",
+    "./renderers": "./src/renderers/index.js",
+    "./tokens.css": "./src/styles/tokens.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "dev": "vite --port 5174 --host",
+    "build": "vite build",
+    "preview": "vite preview --port 5174"
+  },
+  "dependencies": {
+    "preact": "^10.29.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.4"
+  }
+}

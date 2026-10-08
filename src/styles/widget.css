@@ -1,0 +1,31 @@
+/* The widget's own stylesheet: Tailwind (with its preflight) compiled for the shadow root only, so
+   nothing here touches the host page and the page's CSS cannot reach in. */
+@import "tailwindcss";
+@import "./tokens.css";
+
+@source "../";
+
+:host {
+    all: initial;
+}
+
+.cw-root {
+    font-family: var(--cw-font);
+    color: var(--cw-text);
+    font-size: 14px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+}
+
+.cw-root button {
+    cursor: pointer;
+}
+
+.cw-root button:disabled {
+    cursor: default;
+}
+
+.cw-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cw-border) transparent;
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Chat widget demo</title>
+    <style>
+        /* A stand-in sportsbook page: only here to show the widget on a real-looking site and to
+           act on its betslip events. Nothing here is needed by the widget. */
+        :root { --red: #e30613; --bg: #ececec; --text: #1a1a1a; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+        header { background: #fff; border-bottom: 1px solid #ddd; padding: 12px 20px; display: flex; align-items: center; gap: 24px; }
+        .logo { font-weight: 800; font-size: 26px; color: var(--red); letter-spacing: -0.5px; }
+        nav { display: flex; gap: 18px; font-size: 14px; flex-wrap: wrap; }
+        nav a { color: var(--text); text-decoration: none; padding-bottom: 4px; }
+        nav a.active { color: var(--red); border-bottom: 2px solid var(--red); }
+        main { display: grid; grid-template-columns: 1fr 320px; gap: 16px; padding: 16px 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: #fff; border-radius: 10px; padding: 14px 16px; }
+        h2 { margin: 0 0 10px; font-size: 16px; }
+        .market { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+        .market span { background: #ececec; border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; font-size: 14px; }
+        .market b { font-weight: 700; }
+        .slip h2 { display: flex; align-items: center; gap: 8px; }
+        .count { background: var(--red); color: #fff; border-radius: 99px; font-size: 12px; padding: 1px 7px; }
+        .slip ul { list-style: none; padding: 0; margin: 0; }
+        .slip li { border-top: 1px solid #eee; padding: 8px 0; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+        .slip li small { display: block; color: #777; }
+        .slip pre { background: #f6f6f6; font-size: 11px; padding: 8px; border-radius: 6px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+        .empty { color: #888; font-size: 13px; }
+        .controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .controls button { border: 1px solid #ccc; background: #fff; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+        @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">sportsbook</div>
+        <nav>
+            <a href="#">Apuestas en vivo</a>
+            <a href="#" class="active">Apuestas deportivas</a>
+            <a href="#">Casino</a>
+            <a href="./demo/inline.html">Demo inline</a>
+        </nav>
+    </header>
+    <main>
+        <section class="card">
+            <h2>Liga 1 · Resultado del partido (1X2)</h2>
+            <div class="market"><span>Local <b>3.28</b></span><span>Empate <b>3.42</b></span><span>Visita <b>2.21</b></span></div>
+            <h2 style="margin-top:18px">Total de goles</h2>
+            <div class="market"><span>Más de 1.5 <b>1.26</b></span><span>Menos de 1.5 <b>3.70</b></span><span>Más de 2.5 <b>1.95</b></span></div>
+            <p class="empty" style="margin-top:18px">The chat button is at the bottom right. Its betslip buttons land in the "Cupón" on the right — that is the
+                <code>onAction</code> callback a sportsbook implements.</p>
+            <div class="controls">
+                <button data-lang="es">language: es</button>
+                <button data-lang="en">language: en</button>
+                <button data-lang="bg">language: bg</button>
+                <button id="login">setUser('demo-user-1')</button>
+                <button id="logout">setUser(null)</button>
+                <button id="open">open()</button>
+                <button id="clear">clearHistory()</button>
+            </div>
+        </section>
+        <aside class="card slip">
+            <h2>Cupón <span class="count" id="count">0</span></h2>
+            <ul id="slip"><li class="empty">Empty</li></ul>
+            <h2 style="margin-top:14px;font-size:13px">Last onAction payload</h2>
+            <pre id="payload" class="empty">—</pre>
+        </aside>
+    </main>
+
+    <script type="module">
+        // In production: the sst-chat.js script tag, and window.SSTChat instead of this import.
+        import * as SSTChat from '/src/index.jsx';
+
+        // ?key=pk_…&api=http://localhost:3005/v1&lang=es — or VITE_CHAT_API_KEY / VITE_CHAT_API_URL in .env.local
+        const q = new URLSearchParams(location.search);
+        const apiKey = q.get('key') ?? import.meta.env.VITE_CHAT_API_KEY;
+        const apiUrl = q.get('api') ?? import.meta.env.VITE_CHAT_API_URL ?? 'http://localhost:3005/v1';
+        if (!apiKey) document.querySelector('.empty').textContent = 'Pass ?key=<public API key> (and ?api=<chat API URL>) to start the chat.';
+
+        const slip = [];
+        const draw = () => {
+            document.getElementById('count').textContent = slip.length;
+            document.getElementById('slip').innerHTML = slip.length
+                ? slip.map((s) => `<li><span>${s.name}<small>${s.market}</small></span><b>${s.price}</b></li>`).join('')
+                : '<li class="empty">Empty</li>';
+        };
+
+        const chat = apiKey && SSTChat.init({
+            apiKey,
+            apiUrl,
+            language: q.get('lang') ?? 'es',
+            mode: 'floating',
+            metadata: { page: 'demo' },
+            // Where a sportsbook adds the chat's picks to its own betslip. `raw` carries the
+            // sportsbook's own ids for each selection (and for a bet builder).
+            onAction(a) {
+                document.getElementById('payload').textContent = JSON.stringify(a, (k, v) => (k === 'fixture' || k === 'legs' ? undefined : v), 1);
+                if (a.action === 'add_to_betslip') {
+                    for (const s of a.selections) slip.push({ name: s.raw?.player_name ?? s.label_name, market: s.market_name, price: s.value });
+                } else if (a.action === 'add_bet_builder') {
+                    slip.push({ name: `Crear apuesta (${a.bet_builder.selections?.length ?? 0})`, market: a.fixture?.participants?.map((p) => p.name).join(' vs '), price: a.bet_builder.value });
+                } else if (a.action === 'open_event') {
+                    alert(`Open event ${a.integration?.ext_event_id}`);
+                }
+                draw();
+            },
+            onEvent: (e) => console.debug('[sst-chat event]', e),
+        });
+
+        for (const b of document.querySelectorAll('[data-lang]')) b.onclick = () => chat?.setLanguage(b.dataset.lang);
+        document.getElementById('login').onclick = () => chat?.setUser('demo-user-1');
+        document.getElementById('logout').onclick = () => chat?.setUser(null);
+        document.getElementById('open').onclick = () => chat?.open();
+        document.getElementById('clear').onclick = () => chat?.clearHistory();
+    </script>
+</body>
+</html>
