@@ -12,6 +12,7 @@
   "module": "./dist/sst-chat.mjs",
   "exports": {
     ".": "./dist/sst-chat.mjs",
+    "./widget": "./src/index.jsx",
     "./renderers": "./src/renderers/index.js",
     "./tokens.css": "./src/styles/tokens.css",
     "./package.json": "./package.json"
