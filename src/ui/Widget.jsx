@@ -39,8 +39,8 @@ function Launcher({ open, onClick, icon, label }) {
 }
 
 export function Widget({ store, client, storage, config, emit }) {
-    const { open, language, userId, reset } = useStore(store);
-    const i18n = useMemo(() => createI18n({ language, locale: config.locale, translations: config.translations }), [language]);
+    const { open, language, userId, reset, oddsFormat, jurisdiction, customerStatus } = useStore(store);
+    const i18n = useMemo(() => createI18n({ language, locale: config.locale, translations: config.translations, oddsFormat }), [language, oddsFormat]);
     const narrow = useNarrow();
     // Mounted from the first open and only hidden on close: an answer keeps streaming while the
     // panel is closed, and reopening does not reload the conversation.
@@ -53,6 +53,7 @@ export function Widget({ store, client, storage, config, emit }) {
 
     const chat = (onClose) => (
         <Chat key={`${userId}:${reset ?? 0}`} client={client} storage={storage} userId={userId} language={language} options={config}
+            regulation={{ jurisdiction, customerStatus, oddsFormat }}
             onAction={onAction} emit={emit} onClose={onClose} />
     );
 

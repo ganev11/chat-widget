@@ -5,10 +5,14 @@
 //     apiKey: 'pk_…',                       // the sportsbook's public key (required)
 //     mode: 'floating',                     // or 'inline' with container: '#chat'
 //     language: 'es',
+//     oddsFormat: 'decimal',                // or 'fractional' (5/2)
+//     jurisdiction: 'GB',                   // safer-gambling rules for the customer's country
+//     customerStatus: 'ok',                 // or 'restricted' (self-excluded, time-out …)
 //     theme: { primary: '#0a7d32' },
 //     onAction: (a) => { … },               // add_to_betslip / add_bet_builder / open_event
 //   });
 //   chat.open(); chat.setUser('12345'); chat.setLanguage('en'); chat.clearHistory(); chat.destroy();
+//   chat.setCustomerStatus('restricted'); chat.setJurisdiction('GB'); chat.setOddsFormat('fractional');
 //
 // The widget renders into a shadow root: its styles never touch the page and the page's styles
 // never reach in. See README.md for every option.
@@ -29,7 +33,19 @@ const DEFAULTS = {
     language: 'en',
     position: 'bottom-right',
     zIndex: 2147483000,
+    oddsFormat: 'decimal',
+    customerStatus: 'ok',
 };
+
+const ODDS_FORMATS = ['decimal', 'fractional'];
+const CUSTOMER_STATUSES = ['ok', 'restricted'];
+const check = (name, value, allowed) => {
+    if (!allowed.includes(value)) throw new Error(`SSTChat: ${name} must be ${allowed.join(' or ')} (got '${value}')`);
+    return value;
+};
+// A jurisdiction code ('GB') — which ones have rules is the chat service's business; it answers
+// 400 for one it does not know.
+const jurisdictionOf = (code) => (code ? String(code).toUpperCase() : null);
 
 // Tailwind sizes in rem would follow the host page's root font size (some sites set 62.5%):
 // pin them to px. And @property rules are ignored inside a shadow root, so they go to the page
@@ -65,6 +81,8 @@ export function init(options = {}) {
     const config = { ...DEFAULTS, ...options };
     if (!config.apiKey) throw new Error('SSTChat.init: apiKey is required');
     if (config.mode !== 'floating' && config.mode !== 'inline') throw new Error(`SSTChat.init: unknown mode '${config.mode}'`);
+    check('oddsFormat', config.oddsFormat, ODDS_FORMATS);
+    check('customerStatus', config.customerStatus, CUSTOMER_STATUSES);
 
     let container = null;
     if (config.mode === 'inline') {
@@ -82,6 +100,9 @@ export function init(options = {}) {
         open: config.mode === 'inline' || !!config.open || (config.rememberOpen !== false && storage.wasOpen()),
         language: config.language,
         userId: userOf(config.userId),
+        oddsFormat: config.oddsFormat,
+        jurisdiction: jurisdictionOf(config.jurisdiction),
+        customerStatus: config.customerStatus,
     });
 
     installProperties();
@@ -127,6 +148,14 @@ export function init(options = {}) {
         // The site's own user id after login (null on logout → back to the anonymous visitor).
         // Each user has their own conversation.
         setUser: (id) => store.set({ userId: userOf(id) }),
+        // decimal | fractional — the cards at once, the answers' text from the next message.
+        setOddsFormat: (format) => store.set({ oddsFormat: check('oddsFormat', format, ODDS_FORMATS) }),
+        // The customer's jurisdiction ('GB'; null for none): the chat service applies its
+        // safer-gambling rules from the next message.
+        setJurisdiction: (code) => store.set({ jurisdiction: jurisdictionOf(code) }),
+        // ok | restricted (self-excluded, time-out, cooling-off …): a restricted customer gets no
+        // betting content. With a jurisdiction only. Set it from the sportsbook's own account state.
+        setCustomerStatus: (status) => store.set({ customerStatus: check('customerStatus', status, CUSTOMER_STATUSES) }),
         // Theme overrides on top of the current preset, e.g. setTheme({ primary: '#123456' }).
         setTheme: (theme) => applyTheme({ ...config.theme, ...theme }),
         // Forget the current conversation (the next message starts a new one).

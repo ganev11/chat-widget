@@ -6,7 +6,6 @@
 // A predicted lineup has no bench, and none is invented.
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { useI18n } from '../i18n/index.js';
-import { price } from './util.js';
 
 const playerName = (p) => (p?.display_name ?? p?.common_name ?? '').trim();
 const shortName = (p) => (p?.lastname ?? '').trim() || playerName(p).split(' ').at(-1);
@@ -140,7 +139,7 @@ function PlayerList({ title, players, away, selected, focusId, onSelect }) {
 }
 
 function PlayerCard({ player, team, metrics, odds, away, onClose, onAction, floating }) {
-    const { t } = useI18n();
+    const { t, price } = useI18n();
     const pos = POSITIONS[player.position];
     const value = (name) => metrics.find((m) => m.developer_name === name);
     const start = metrics.find((m) => m.meta?.p_start !== undefined)?.meta?.p_start;

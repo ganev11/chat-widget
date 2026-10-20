@@ -62,6 +62,9 @@ const chat = init({ apiKey: 'YOUR_PUBLIC_KEY' });
 | `container` | — | Inline mode: an element or a CSS selector. |
 | `language` | `'en'` | `'es'`, `'en'`, `'bg'`, or any language you add in `translations`. It is also sent to the chat, which answers in that language unless the user writes in another one. |
 | `locale` | `language` | Locale for dates and times, e.g. `'es-PE'`. |
+| `oddsFormat` | `'decimal'` | `'fractional'` shows prices the UK/Irish way (`5/2`, `4/9`). Also sent to the chat, so the answers' text quotes the same prices as the cards. `onAction` payloads keep the decimal `value`. |
+| `jurisdiction` | none | The customer's jurisdiction, e.g. `'GB'`. The chat applies that country's safer-gambling rules to its answers: tone, no promotions, no certainty or value claims, care replies to signs of gambling harm, a safer-gambling line under every pick. Without one, answers are not restricted. See [Safer gambling](#safer-gambling). |
+| `customerStatus` | `'ok'` | `'restricted'` for a self-excluded customer, or one on a time-out or cooling-off: the chat gives no betting content at all. Only with a `jurisdiction`. |
 | `translations` | — | Override any text, or add a language: `{ es: { title: 'Asistente' } }`. See [`src/i18n/en.js`](src/i18n/en.js) for every key. |
 | `theme` | light preset | See [Theming](#theming). |
 | `userId` | anonymous | Your own id for the logged-in user, used to keep their conversation. Without one, an anonymous id is kept in the browser. Change it at runtime with `setUser()`. |
@@ -132,8 +135,30 @@ Prices can change between the answer and the click, so re-price from your own fe
 | `setLanguage('en')` | Switch the UI language. Answers follow from the next message. |
 | `setUser(id)` | After login (`null` on logout). Each user has their own conversation. |
 | `setTheme({ primary: '#123456' })` | Change colours at runtime. |
+| `setOddsFormat('fractional')` | Cards change at once; answers from the next message. |
+| `setJurisdiction('GB')` | The customer's jurisdiction (`null` for none), from the next message. |
+| `setCustomerStatus('restricted')` | When the customer's account state changes (`'ok'` again when it ends). |
 | `clearHistory()` | Start a new conversation. |
 | `destroy()` | Remove the widget. |
+
+## Safer gambling
+
+Pass the customer's `jurisdiction` and the chat answers under that jurisdiction's rules.
+Supported: `'GB'` (Gambling Commission rules and the UK advertising codes). The rules are applied by the
+chat service, before, during and after the model writes, so they do not depend on the
+prompt alone:
+
+- a customer marked `restricted` gets no odds, picks or betting content, only a pointer to your
+  safer-gambling tools and free support;
+- a message showing signs of gambling harm (chasing losses, borrowed money, wanting to stop …)
+  gets a care reply with support details and no betting content, and the rest of that
+  conversation gets none either;
+- an answer that calls a pick certain or value, creates urgency, mentions promotions or other
+  products, or uses emojis or slang is rewritten before it reaches the customer;
+- every answer with a pick, acca or bet builder ends with a safer-gambling line;
+- betslips appear as they are, without the slot-machine reveal animation.
+
+Set `customerStatus` from your own account state; the widget cannot know it.
 
 ## Theming
 

@@ -1,6 +1,5 @@
 // Small helpers shared by the renderers. Items are the SSTrader API's own rows, read as they are.
 
-export const price = (v) => (typeof v === 'number' ? v.toFixed(2) : v);
 export const side = (fixture, loc) => fixture?.participants?.find((p) => p.location === loc);
 export const matchName = (f) => `${side(f, 'home')?.name ?? '?'} vs ${side(f, 'away')?.name ?? '?'}`;
 

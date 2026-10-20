@@ -14,7 +14,7 @@ import { Form } from './Form.jsx';
 import { Lineups } from './Lineups.jsx';
 import { MatchStats, Timeline } from './MatchStats.jsx';
 import { Predictions } from './Predictions.jsx';
-import { kickoff, matchName, price, reducedMotion } from './util.js';
+import { kickoff, matchName, reducedMotion } from './util.js';
 
 const Card = ({ title, subtitle, children, footer }) => (
     <div className="rounded-cw border border-cw-border bg-cw-surface overflow-hidden">
@@ -37,7 +37,7 @@ const Cta = ({ children, onClick }) => (
 );
 
 function OddChip({ data, onAction }) {
-    const { t } = useI18n();
+    const { t, price } = useI18n();
     return (
         <Card title={`${data.label_name} @ ${price(data.value)}`} subtitle={data.market_name}
             footer={<Cta onClick={() => onAction({ action: 'add_to_betslip', selections: [data] })}>{t('addToBetslip')}</Cta>}>
@@ -54,7 +54,7 @@ const Lock = () => (
 );
 
 function OddButton({ o, onAction, label = true }) {
-    const { t } = useI18n();
+    const { t, price } = useI18n();
     return (
         <button type="button" title={o.suspend ? t('suspended') : t('addToBetslip')} disabled={!!o.suspend}
             onClick={() => onAction({ action: 'add_to_betslip', selections: [o] })}
@@ -191,7 +191,9 @@ const LAST_STOP = 1000;   // the last leg keeps you waiting a little longer
 const DECOY_PICKS = ['Over 2.5', 'Under 2.5', 'BTTS', '1', 'X', '2', 'Over 9.5', 'Anytime', '1X', 'Under 4.5', 'Yes', 'No'];
 
 const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(([, v]) => v);
-const decoyPrices = (n) => Array.from({ length: n }, () => (1.15 + Math.random() ** 2 * 6).toFixed(2));
+// Common prices, so a decoy reads like a real one in either odds format (2.5 → 6/4, not 151/100).
+const DECOYS = [1.2, 1.25, 1.33, 1.4, 1.5, 1.62, 1.73, 1.8, 1.91, 2, 2.1, 2.2, 2.38, 2.5, 2.62, 2.75, 3, 3.25, 3.5, 4, 4.5, 5, 6, 7];
+const decoyPrices = (n) => Array.from({ length: n }, () => DECOYS[Math.floor(Math.random() ** 1.5 * DECOYS.length)]);
 
 // How many of `count` legs have landed. `delay` (ms) staggers several slips in one answer;
 // null/undefined means no reveal.
@@ -232,7 +234,7 @@ const Reel = ({ items, speed, className = '' }) => (
 // A player leg names the player: its label alone only says "Anytime".
 // `reel` (only while a slip is being revealed) is { spinning, words, prices, speed }.
 function Leg({ o, sub, last, added, onAdd, dot = 'bg-cw-highlight ring-cw-highlight/20', reel }) {
-    const { t } = useI18n();
+    const { t, price } = useI18n();
     const player = o.raw?.player_name;
     const spinning = !!reel?.spinning;
     const land = reel && !spinning ? 'reel-land' : '';
@@ -257,7 +259,7 @@ function Leg({ o, sub, last, added, onAdd, dot = 'bg-cw-highlight ring-cw-highli
                 </button>
                 {spinning && (
                     <div className="absolute inset-0 rounded bg-cw-surface-alt">
-                        <Reel items={reel.prices} speed={reel.speed * 0.8} className="text-center text-sm font-bold tabular-nums text-cw-odds" />
+                        <Reel items={reel.prices.map(price)} speed={reel.speed * 0.8} className="text-center text-sm font-bold tabular-nums text-cw-odds" />
                     </div>
                 )}
             </div>
@@ -277,26 +279,32 @@ function SlipCard({ children, reveal }) {
 }
 
 // `rolling` spins the price as a reel; `pop` bumps it each time the value changes.
-const SlipPrice = ({ label, value, className = 'text-cw-odds', rolling, pop }) => (
-    <div className="shrink-0 text-right leading-none">
-        <div className="text-[10px] uppercase tracking-wide text-cw-subtle">{label}</div>
-        <div className={`relative mt-0.5 text-lg font-bold tabular-nums ${className}`}>
-            {rolling
-                ? <><span className="invisible">{price(value)}</span><Reel items={rolling} speed={0.35} className="text-right" /></>
-                : <span key={price(value)} className={pop ? 'reel-pop' : ''}>{price(value)}</span>}
+const SlipPrice = ({ label, value, className = 'text-cw-odds', rolling, pop }) => {
+    const { price } = useI18n();
+    return (
+        <div className="shrink-0 text-right leading-none">
+            <div className="text-[10px] uppercase tracking-wide text-cw-subtle">{label}</div>
+            <div className={`relative mt-0.5 text-lg font-bold tabular-nums ${className}`}>
+                {rolling
+                    ? <><span className="invisible">{price(value)}</span><Reel items={rolling.map(price)} speed={0.35} className="text-right" /></>
+                    : <span key={price(value)} className={pop ? 'reel-pop' : ''}>{price(value)}</span>}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
-const SlipCta = ({ done, children, doneText, value, onClick, disabled }) => (
-    <div className="px-3 pb-3 pt-1">
-        <button type="button" onClick={onClick} disabled={disabled}
-            className={`w-full flex items-center justify-between rounded px-3 py-2 text-sm font-semibold transition-all ${done ? 'bg-cw-success text-white' : 'bg-cw-primary text-cw-on-primary'} ${disabled ? 'opacity-40' : done ? '' : 'hover:bg-cw-primary-hover'}`}>
-            <span className="flex items-center gap-1.5">{done && <Tick />}{done ? doneText : children}</span>
-            <span className="font-bold tabular-nums">{disabled ? '…' : price(value)}</span>
-        </button>
-    </div>
-);
+const SlipCta = ({ done, children, doneText, value, onClick, disabled }) => {
+    const { price } = useI18n();
+    return (
+        <div className="px-3 pb-3 pt-1">
+            <button type="button" onClick={onClick} disabled={disabled}
+                className={`w-full flex items-center justify-between rounded px-3 py-2 text-sm font-semibold transition-all ${done ? 'bg-cw-success text-white' : 'bg-cw-primary text-cw-on-primary'} ${disabled ? 'opacity-40' : done ? '' : 'hover:bg-cw-primary-hover'}`}>
+                <span className="flex items-center gap-1.5">{done && <Tick />}{done ? doneText : children}</span>
+                <span className="font-bold tabular-nums">{disabled ? '…' : price(value)}</span>
+            </button>
+        </div>
+    );
+};
 
 // An acca as a ticket: each leg is its own single (its price adds just that selection), the
 // legs joined down the left like a slip, and the combined price on top and on the CTA.
@@ -388,7 +396,7 @@ function Betslip({ data, onAction, reveal }) {
 }
 
 function Insights({ data, onAction }) {
-    const { t } = useI18n();
+    const { t, price } = useI18n();
     return (
         <Card title={t('ourPicks')}>
             <div className="space-y-2">

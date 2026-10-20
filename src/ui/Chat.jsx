@@ -78,7 +78,7 @@ function Welcome({ text, prompts, onPick, disabled }) {
     );
 }
 
-function Turn({ turn, onAction, onRetry }) {
+function Turn({ turn, onAction, onRetry, animate }) {
     const { t } = useI18n();
     return (
         <div className="space-y-2">
@@ -98,7 +98,7 @@ function Turn({ turn, onAction, onRetry }) {
             {turn.response && (
                 <div className="space-y-2">
                     <Markdown text={turn.response.text} />
-                    <ChatItems items={visibleItems(turn.response.ui)} onAction={onAction} reveal={!!turn.fresh} />
+                    <ChatItems items={visibleItems(turn.response.ui)} onAction={onAction} reveal={animate && !!turn.fresh} />
                 </div>
             )}
             {turn.error && (
@@ -111,7 +111,7 @@ function Turn({ turn, onAction, onRetry }) {
     );
 }
 
-export function Chat({ client, storage, userId, language, options, onAction, emit, onClose }) {
+export function Chat({ client, storage, userId, language, regulation = {}, options, onAction, emit, onClose }) {
     const { t } = useI18n();
     const [chatId, setChatId] = useState(null);
     const [turns, setTurns] = useState([]);           // { key, input, response?, live?, error?, fresh? }
@@ -210,6 +210,9 @@ export function Chat({ client, storage, userId, language, options, onAction, emi
                     ext_user_id: userId,
                     ext_message_id: newId(),
                     language,
+                    odds_format: regulation.oddsFormat ?? 'decimal',
+                    // The chat keeps a jurisdiction once sent; none configured sends nothing.
+                    ...(regulation.jurisdiction && { jurisdiction: regulation.jurisdiction, customer_status: regulation.customerStatus ?? 'ok' }),
                     ...(options.metadata && { ext_metadata: options.metadata }),
                 },
                 (type, data) => {
@@ -226,7 +229,8 @@ export function Chat({ client, storage, userId, language, options, onAction, emi
                         finished = true;
                         setChatId(data.chat_id);
                         storage.setChatId(userId, data.chat_id);
-                        // fresh: its betslips play the slot-machine reveal (loaded turns do not).
+                        // fresh: its betslips play the slot-machine reveal (loaded turns do not) —
+                        // never under a jurisdiction's rules: a reel reveal gamifies the pick.
                         patchLast(() => ({ live: null, fresh: true, response: { text: data.text, ui: data.ui, suggestions: data.suggestions } }));
                         setSuggestions(data.suggestions ?? []);
                         emit({ type: 'answer', chat_id: data.chat_id, turn_id: data.turn_id });
@@ -306,7 +310,8 @@ export function Chat({ client, storage, userId, language, options, onAction, emi
             <div ref={scroller} onScroll={onScroll} className="cw-scroll flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-5">
                 {!turns.length && <Welcome text={options.welcome ?? t('welcome')} prompts={prompts} disabled={busy} onPick={(p) => send({ message: p })} />}
                 {turns.map((x) => (
-                    <Turn key={x.key} turn={x} onAction={onAction} onRetry={x === lastError && !busy ? () => retry(x) : null} />
+                    <Turn key={x.key} turn={x} onAction={onAction} onRetry={x === lastError && !busy ? () => retry(x) : null}
+                        animate={!regulation.jurisdiction} />
                 ))}
             </div>
 
